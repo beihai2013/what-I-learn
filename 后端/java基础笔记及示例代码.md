@@ -285,3 +285,211 @@ public class RandomDemo {
 | boolean replaceAll(List list, Object oldVal, Object newVal) | 使用用 newVal 替换所有的 oldVal。              |
 | <K,V> Map<K,V> synchronizedMap(Map<K,V> m)                  | 将 m 包装为线程安全的 Map                      |
 | List synchronizedList(List list)                            | 将 list 包装为线程安全的 List                  |
+
+## IO
+
+文件流
+
+```
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+
+public class Test {
+
+    public static void main(String[] args) {
+        try {
+            //inFile 作为输入流的数据文件必须存在，否则抛出异常
+            File inFile = new File("/home/project/file1.txt");
+
+            //file2.txt没有，系统可以创建
+            File outFile = new File("file2.txt");
+            FileInputStream fis = new FileInputStream(inFile);
+            FileOutputStream fos = new FileOutputStream(outFile);
+            int c;
+            while((c = fis.read()) != -1){
+                fos.write(c);
+            }
+            //打开了文件一定要记着关，释放系统资源
+            fis.close();
+            fos.close();
+        }catch(FileNotFoundException e) {
+            System.out.println("FileStreamsTest:" + e);
+        }catch(IOException e){
+            System.err.println("FileStreamTest:" + e);
+        }
+    }
+}
+```
+
+## 网络编程
+
+#### HttpURLConnection
+
+用于使用Http
+
+```
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+public class HttpUrlTest {
+    public static void main(String[] args) {
+        try {
+            //设置url
+            URL shiyanlou = new URL("https://www.shiyanlou.com");
+            //打开连接
+            HttpURLConnection urlConnection = (HttpURLConnection)shiyanlou.openConnection();
+            //设置请求方法
+            urlConnection.setRequestMethod("GET");
+            //设置连接超时时间
+            urlConnection.setConnectTimeout(1000);
+            //获取输入流
+            InputStream inputStream = urlConnection.getInputStream();
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+            //打印结果
+            bufferedReader.lines().forEach(System.out::println);
+            //关闭连接
+            inputStream.close();
+            bufferedReader.close();
+            urlConnection.disconnect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+#### InetAddress
+
+用于表示IP地址
+
+```
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+public class InetAddressDemo {
+    public static void main(String[] args) {
+        try {
+            InetAddress shiyanlou = InetAddress.getByName("www.shiyanlou.com");
+            //toString 方法将输出主机名和ip地址
+            System.out.println(shiyanlou.toString());
+            //获取ip地址
+            String ip = shiyanlou.toString().split("/")[1];
+            //根据IP地址获取主机名
+            InetAddress byAddress = InetAddress.getByName(ip);
+            System.out.println("get hostname by IP address:" + byAddress.getHostName());
+            System.out.println("localhost: "+InetAddress.getLocalHost());
+        } catch (UnknownHostException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+#### Socket
+
+客户端套接字，步骤如下
+
+1. 建立与服务器的连接
+2. 使用输出流将数据发送到服务器
+3. 使用输入流读取服务器返回数据
+4. 关闭连接
+
+```
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.util.Scanner;
+
+public class EchoClient {
+    public static void main(String[] args) {
+        String hostname = "127.0.0.1";
+        //socket端口
+        int port = 1080;
+        Scanner userIn = new Scanner(System.in);
+        try {
+            //建立socket连接
+            Socket socket = new Socket(hostname, port);
+            //获取socket输出流
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+            //获取输入流
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            String userInput;
+            System.out.println("请输入信息：");
+            //当用户输入exit时退出
+            while (!"exit".equals(userInput = userIn.nextLine())) {
+                out.println(userInput);
+                System.out.println("收到服务端回应:" + in.readLine());
+            }
+            //关闭socket
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+
+
+#### ServerSocket
+
+服务端套接字，步骤如下
+
+1. 创建服务器套接字并将其绑定到特定接口
+2. 等待客户端连接
+3. 通过客户端套接字获取输入流，从客户端读取数据
+4. 通过客户端套接字获取输出流，发送数据到客户端
+5. 关闭套接字
+
+```
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+
+public class EchoServer {
+    public static void main(String[] args) {
+        try {
+            //服务端需要使用ServerSocket类
+            ServerSocket serverSocket = new ServerSocket(1080);
+            //阻塞 等待客户端连接
+            Socket client = serverSocket.accept();
+            PrintWriter out = new PrintWriter(client.getOutputStream(), true);
+            BufferedReader in = new BufferedReader(new InputStreamReader(client.getInputStream()));
+            String userIn;
+            while ((userIn = in.readLine()) != null) {
+                System.out.println("收到客户端消息：" + userIn);
+                //发回客户端
+                out.println(userIn);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+}
+```
+
+
+
+## 反射
+
+| 方法                                                         | 描述                       |
+| ------------------------------------------------------------ | -------------------------- |
+| Field getField(String name)                                  | 获取指定的域对象           |
+| Field[] getFields()                                          | 返回所有的公有域对象数组   |
+| Method getDeclaredMethod(String name, Class<?>... parameterTypes) | 返回指定的方法对象         |
+| Method[] getMethods()                                        | 返回所有的公有方法对象数组 |
+| Method[] getDeclaredMethods()                                | 返回所有方法对象数组       |
+| String getName()                                             | 获取全限定名               |
