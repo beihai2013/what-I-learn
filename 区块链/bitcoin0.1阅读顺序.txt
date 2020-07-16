@@ -1,0 +1,3 @@
+1. 精通比特币
+2.1 https://zhuanlan.zhihu.com/p/49609374
+2.2 ui.cpp中init函数开始，深度搜索阅读
