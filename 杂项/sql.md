@@ -184,6 +184,35 @@ case when sex = '1' then '男'
      else '其他' end
 ```
 
+# LIMIT
+
+```mysql
+LIMIT [offset,] rows | rows OFFSET offset
+# 栗子
+select * from table limit 2,1;                 
+# 含义是跳过2条取出1条数据，limit后面是从第2条开始读，读取1条信息，即读取第3条数据
+
+select * from table limit 2 offset 1;      
+#含义是从第1条（不包括）数据开始取出2条数据，limit后面跟的是2条数据，offset后面是从第1条开始读取，即读取第2,3条
+```
+
+# IFNULL、ISNULL、NULLIF
+
+## IFNULL(expr1,expr2)
+
+若expr1不为NULL，返回值为expr1；否则返回值为expr2
+
+## ISNULL(expr)
+
+若expr返回值为NULL，则返回值为1；否则返回值为0
+
+# 临时表
+
+```
+SELECT 
+	(SELECT  * FROM TABLE) AS 列名
+```
+
 
 
 # 聚合函数
@@ -215,6 +244,10 @@ NOW() - 返回当前的系统日期和时间
 FORMAT() - 格式化某个字段的显示方式
 ```
 
+# 自定义函数
+
+
+
 # 注意事项
 
 ## datediff
@@ -224,5 +257,31 @@ FORMAT() - 格式化某个字段的显示方式
 ```
 date(datepart,startdate, enddate)
 # datepart中为如dd等表示时间的缩写
+```
+
+# LEETCODE题库
+
+## 175 组合两个表
+
+考察LEFT JOIN
+
+```
+# Write your MySQL query statement below
+SELECT Person.FirstName, Person.LastName, Address.City, Address.state
+FROM Person LEFT JOIN Address
+ON Person.PersonId = Address.PersonId;
+```
+
+## 176 第二高的薪水
+
+考察IFNULL、临时表、LIMIT OFFSET
+
+```
+SELECT IFNULL(
+    (SELECT DISTINCT Salary from Employee
+    ORDER BY Salary DESC
+    LIMIT 1 OFFSET 1),
+    NULL
+) AS SecondHighestSalary;
 ```
 
