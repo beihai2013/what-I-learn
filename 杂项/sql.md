@@ -488,6 +488,38 @@ where
     e1.Salary = temp1.Salary
 ```
 
+## 185 部门工资前三高的所有员工
+
+考察的较多
+
+选取前三高，转换一下思路，就是表中相同的Department下只有两个工资比他高的就可以
+
+```
+select 
+    d1.Name as Department, e1.Name as Employee, e1.Salary as Salary
+from
+    Employee e1 left join Department d1
+on
+    e1.DepartmentId = d1.Id
+where
+    e1.Id in (
+
+        select
+            distinct e2.Id as Id
+        from
+            Employee e2, Employee e3
+        where 
+            e3.Salary >= e2.Salary and e3.DepartmentId=e2.DepartmentId
+        group by
+            e2.Id
+        having 
+            count(distinct e3.Salary) <= 3
+    ) and
+    e1.DepartmentId in (select Id from Department)
+```
+
+
+
 ## 196 删除重复的电子邮箱
 
 考察delete
@@ -514,5 +546,33 @@ from
 where
     DATEDIFF(w1.RecordDate, w2.RecordDate)=1 and
     w1.Temperature > w2.Temperature
+```
+
+## 595 大的国家
+
+```
+select
+    name, population, area
+from 
+    World
+where
+    area > 3000000 or
+    population > 25000000
+```
+
+
+
+## 620 有趣的电影
+
+```
+select 
+    *
+from
+    cinema
+where
+    description != "boring"
+    and id % 2 = 1
+ORDER BY
+    rating DESC
 ```
 
