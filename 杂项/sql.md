@@ -196,6 +196,8 @@ select * from table limit 2 offset 1;
 #含义是从第1条（不包括）数据开始取出2条数据，limit后面跟的是2条数据，offset后面是从第1条开始读取，即读取第2,3条
 ```
 
+要注意LIMIT后，只能接变量或者常量，不能接如（N-1）之类的运算
+
 # IFNULL、ISNULL、NULLIF
 
 ## IFNULL(expr1,expr2)
@@ -246,6 +248,29 @@ FORMAT() - 格式化某个字段的显示方式
 
 # 自定义函数
 
+```
+ CREATE FUNCTION myFunction
+(in_string VARCHAR(255),
+in_find_str VARCHAR(20),
+ in_repl_str VARCHAR(20))
+
+ RETURNS VARCHAR(255)
+ BEGIN
+ DECLARE l_new_string VARCHAR(255);
+ DECLARE l_find_pos INT;
+
+ SET l_find_pos=INSTR(in_string,in_find_str);
+
+ IF (l_find_pos>0) THEN
+ SET l_new_string=INSERT(in_string,l_find_pos,LENGTH(in_find_str),in_repl_str);
+ ELSE
+ SET l_new_string=in_string;
+ END IF;
+ RETURN(l_new_string);
+
+ END$$
+```
+
 
 
 # 注意事项
@@ -283,5 +308,211 @@ SELECT IFNULL(
     LIMIT 1 OFFSET 1),
     NULL
 ) AS SecondHighestSalary;
+```
+
+## 177 第N高的薪水
+
+考察自定义函数
+
+```
+CREATE FUNCTION getNthHighestSalary(N INT) RETURNS INT
+BEGIN
+    SET n = N-1;
+  RETURN (
+      # Write your MySQL query statement below.
+
+        SELECT DISTINCT Salary FROM Employee
+        ORDER BY Salary DESC LIMIT n,1
+          #ORDER BY Salary DESC limit (N-1), 1
+        
+  );
+END
+
+```
+
+## 178 分数排名
+
+一个表可以以别名的方式引用两次
+
+注意"Rank"为关键字，要加双引号
+
+```
+select s1.Score,count(distinct(s2.score)) Rank
+from
+Scores s1,Scores s2
+where
+s1.score<=s2.score
+group by s1.Id
+order by Rank
+```
+
+## 180 连续出现的数字
+
+写法1，注意要distinct
+
+```
+# Write your MySQL query statement below
+SELECT distinct l1.Num ConsecutiveNums 
+FROM Logs l1, Logs l2, Logs l3
+WHERE 
+    l1.Id + 1 = l2.Id and l1.Num = l2.Num and
+    l1.Id + 2 = l3.Id and l1.Num = l3.Num 
+```
+
+写法2，考察case when then else end和用户定义变量
+
+用户定义变量：@开头
+
+```
+SELECT  DISTINCT(Num) AS ConsecutiveNums
+FROM (
+    SELECT
+    Num,
+    @counter := IF(@prev = Num, @counter + 1, 1) AS how_many_cnt_in_a_row, # IF(判断句，执行句1，执行句2)
+    @prev := Num #赋值
+    FROM Logs y, (SELECT @counter:=1, @prev:=NULL) vars
+) sq
+WHERE how_many_cnt_in_a_row >= 3
+```
+
+## 181 超过经理收入的员工
+
+写法1，考察join
+
+join=inner  join
+
+若此处使用left join，只会返回全部e1的数据
+
+```
+select e1.name as Employee
+from Employee e1  join Employee e2
+on
+    e1.ManagerId is not NULL and
+    e2.Id = e1.ManagerId and
+    e1.Salary > e2.Salary
+;
+```
+
+写法2，考察where
+
+即使不用join，也可以在from后接多个表
+
+```
+select e1.Name as Employee 
+from Employee e1, Employee e2
+where e1.ManagerId = e2.Id and e1.Salary > e2.Salary
+```
+
+## 182 查找重复的电子邮箱
+
+写法1，考察distinct
+
+```
+select 
+    distinct p1.Email
+from 
+    Person p1, Person p2
+where 
+    p1.Id != p2.Id and 
+    p1.Email = p2.Email
+```
+
+写法2，考察group by having和count
+
+使用sql的聚合函数时，必须使用group by和having语句，不能使用where
+
+```
+select Email
+from Person
+group by Email
+having count(Email) > 1;
+```
+
+
+
+## 183 从不订购的客户
+
+【怎么选取不在B表中的A表中的一些数据】
+
+写法1，考察left join on where
+
+注意on后面跟的是连接A表和B表的条件。要想进行筛选，还需后接where
+
+```
+select 
+    c1.Name as Customers
+from 
+    Customers c1 LEFT JOIN (
+        select distinct c2.Id, c2.Name
+        from Customers c2, Orders o2
+        where c2.Id = o2.CustomerId
+    ) as c3
+on
+    c1.Id = c3.Id
+where
+    c3.Id is NULL 
+```
+
+写法2
+
+```
+select customers.name as 'Customers'
+from customers
+where customers.id not in
+(
+    select customerid from orders
+);
+
+```
+
+
+
+## 184 部门最高工资的员工
+
+考察聚合函数的条件筛选
+
+使用group by即可
+
+```
+select 
+    d1.Name as Department, e1.Name as Employee, e1.Salary as Salary
+from
+    Employee e1, Department d1, (
+        select distinct max(e2.Salary) as Salary, e2.DepartmentId as DepartmentId
+        from Employee e2
+        group by e2.DepartmentId
+    ) temp1
+where
+    e1.DepartmentId = d1.Id and
+    d1.Id = temp1.DepartmentId and
+    e1.Salary = temp1.Salary
+```
+
+## 196 删除重复的电子邮箱
+
+考察delete
+
+```
+delete 
+    p1
+from
+    Person p1, Person p2
+where
+    p1.Email = p2.Email and p1.Id > p2.Id
+```
+
+## 197 上升的温度
+
+考察DATEDIFF
+
+```
+# Write your MySQL query statement below
+select 
+    w1.Id
+from
+    Weather w1, Weather w2
+where
+    DATEDIFF(w1.RecordDate, w2.RecordDate)=1 and
+    w1.Temperature > w2.Temperature
 ```
 
