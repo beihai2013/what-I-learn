@@ -548,6 +548,21 @@ where
     w1.Temperature > w2.Temperature
 ```
 
+## 569 超过5名学生的课
+
+```
+select
+    class
+from 
+    courses
+group by
+    class
+having
+    count(distinct(student)) >= 5
+```
+
+
+
 ## 595 大的国家
 
 ```
@@ -574,5 +589,68 @@ where
     and id % 2 = 1
 ORDER BY
     rating DESC
+```
+
+## 626 换座位
+
+1.必须要使用where，having和聚合函数的场合，可以使用union分别选择结果，最后把结果合并
+
+2.使用了聚合函数，如count、max后，只会出现一行。要想将聚合函数的值用于判断条件，需要使用 $(SELECT        COUNT(*) AS counts    FROM        seat) $ 
+
+```
+SELECT distinct * FROM ((
+    SELECT s1.id as id, s2.student as student
+    from seat s1, seat s2
+    where
+        (s1.id % 2 = 1 and s1.id + 1 = s2.id) or
+        (s1.id % 2 = 0 and s1.id - 1 = s2.id)
+    ) UNION (
+    SELECT s3.id as id, s3.student as student
+    from seat s3
+    having
+        s3.id = (select count(*) from seat) and s3.id % 2 = 1
+    ))t1
+ORDER BY
+    id ASC
+```
+
+写法2，使用case when
+
+```
+SELECT
+    (CASE
+        WHEN MOD(id, 2) != 0 AND counts != id THEN id + 1
+        WHEN MOD(id, 2) != 0 AND counts = id THEN id
+        ELSE id - 1
+    END) AS id,
+    student
+FROM
+    seat,
+    (SELECT
+        COUNT(*) AS counts
+    FROM
+        seat) AS seat_counts
+ORDER BY id ASC;
+
+```
+
+## 627 交换工资
+
+case when可以在任何地方使用
+
+```
+update
+    salary
+set sex = (CASE sex
+    WHEN "m" then "f"
+    ELSE "m" END)
+```
+
+写法2，if函数
+
+```
+update
+    salary
+set sex = if(sex="m","f","m")
 ```
 
