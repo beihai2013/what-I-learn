@@ -177,6 +177,51 @@ HEAD_FLAGS：块标记，2字节
 
 ### base64stego
 
+工具：winhex
+
+知识点：zip伪加密，base64隐写
+
+首先要用winhex，修改zip的压缩源文件数据区全局加密处的字节
+
+得到一个文件stego.txt。结合题目提示，对其进行base64解码，并未得到期望的结果。
+
+查阅wp可知考察base64隐写。base64隐写不等于base64解码
+
+```
+import base64
+import msvcrt
+import time
+b64chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+with open('stego.txt', 'rb') as f:
+    bin_str = ''
+    for line in f.readlines():
+        # 去除头尾的换行符
+        stegb64 = str(line, "utf-8").strip("\n")
+        # 基于base64解码又编码，达到去除隐写的符号的目的
+        row64 = str(base64.b64encode(base64.b64decode(stegb64)),"utf-8")
+        # 基于base64的隐写，都在最后一个字符上体现。因此算一下两个字符串最后一个字符的差值
+        offset = abs(b64chars.index(stegb64.replace('=','')[-1]) - b64chars.index(row64.replace('=','')[-1]))
+        print(offset)
+        #print(stegb64.replace('=',''))
+        #print(stegb64.replace('=','')[-1])
+        #print(b64chars.index(stegb64.replace('=','')[-1]))
+        #print(b64chars.index(row64.replace('=','')[-1]))
+        # 等号的数量*2等于最后返回字符串的长度
+        equalnum = stegb64.count('=')
+        if equalnum:
+            bin_str += bin(offset)[2:].zfill(equalnum * 2)
+        print(bin(offset))
+        print(bin(offset)[2:])
+        # 右对齐后，在头部填充0
+        print(bin(offset)[2:].zfill(equalnum * 2))
+        # 8个bit转换为一个字符
+        print(''.join([chr(int(bin_str[i:i+8],2)) for i in range(0, len(bin_str), 8)]))
+        # time.sleep(3)
+
+```
+
+
+
 #### zip的伪加密
 
 zip由三个部分组成：压缩源文件数据区+压缩源文件目录区+压缩源文件目录结束标志，根据三个区域的不同，区分zip是非加密、伪加密还是加密的。
@@ -262,10 +307,41 @@ F7 46：最后修改文件日期
 #### base64隐写
 
 ```
-
+基于base64解码时尾部存在一定数量的bit不会被转义的情况，可以在此处植入想要隐写的字符
 ```
 
+### ext3
 
+这题没看题解自己做的，感动哭了
+
+首先根据提示，这是一个linux系统光盘文件。放入centos中，使用file命令查看
+
+```
+file f1fc23f5c743425d9e0073887c846d23
+
+Linux rev 1.0 ext3 filesystem data, UUID=cf6d7bff-c377-403f-84ae-956ce3c99aaa (needs journal recovery)
+```
+
+网上查阅如何使用ext3文件系统数据，使用mount命令挂载。注意要在root用户权限下使用
+
+```
+mount -o loop f1fc23f5c743425d9e0073887c846d23 /mnt
+# -o loop提供了一个虚拟磁盘，/mnt是挂载的目录
+```
+
+进入/mnt，随便搜搜flag相关字，发现在flag.txt
+
+```
+./O7avZhikgKgbF/flag.txt
+```
+
+查看flag.txt中的内容，根据字符串其后的等号判断为base64。解码后得到答案
+
+```
+flag{sajbcibzskjjcnbhsbvcjbjszcszbkzj}
+```
+
+网上还有一种用winhex的做法
 
 ## web 初级
 
